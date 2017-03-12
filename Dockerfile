@@ -6,6 +6,7 @@ MAINTAINER Dmitry Zeldin <dmitry@zeldin.pro>
 # Copy the local package files to the container's workspace.
 ADD . /go/src/github.com/ZelJin/diy-dyndns
 # Install dependencies via godep
+RUN go get github.com/tools/godep
 RUN godep go install
 
 # Build the app inside the container.
