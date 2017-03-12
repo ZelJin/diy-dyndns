@@ -1,0 +1,11 @@
+{
+	"ImportPath": "github.com/ZelJin/diy-dyndns",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v79",
+	"Deps": [
+		{
+			"ImportPath": "github.com/jasonlvhit/gocron",
+			"Rev": "42a5804d37aa0b9239b265e894a16b8edbf52d54"
+		}
+	]
+}
