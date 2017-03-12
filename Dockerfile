@@ -7,7 +7,7 @@ MAINTAINER Dmitry Zeldin <dmitry@zeldin.pro>
 ADD . /go/src/github.com/ZelJin/diy-dyndns
 # Install dependencies via godep
 RUN go get github.com/tools/godep
-RUN godep go install
+RUN cd /go/src/github.com/ZelJin/diy-dyndns && godep go install
 
 # Build the app inside the container.
 RUN go install github.com/ZelJin/diy-dyndns
