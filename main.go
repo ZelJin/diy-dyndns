@@ -12,6 +12,7 @@ import (
 	"github.com/jasonlvhit/gocron"
 )
 
+// DomainRecord contains information about the domain.
 type DomainRecord struct {
 	ID       int    `json:"id"`
 	Type     string `json:"type"`
@@ -22,6 +23,7 @@ type DomainRecord struct {
 	Weight   int    `jsin:"weight"`
 }
 
+// DomainRecordResponse is a response of the Digital Ocean API
 type DomainRecordResponse struct {
 	DomainRecords []DomainRecord `json:"domain_records"`
 	Links         interface{}    `json:"links"`
@@ -41,6 +43,9 @@ func main() {
 	}
 }
 
+// CheckIPAddress checks the IP address assigned to the domain,
+// compares it to the real IP address of the server and
+// orders to change the DNS record if needed.
 func CheckIPAddress() {
 	token := os.Getenv("DO_TOKEN")
 	domain := os.Getenv("DO_DOMAIN")
@@ -68,6 +73,8 @@ func CheckIPAddress() {
 	}
 }
 
+// GetExternalIP checks the external IP of the server
+// using the external service
 func GetExternalIP() (string, error) {
 	res, err := http.Get("http://myexternalip.com/raw")
 	if err != nil {
@@ -81,6 +88,7 @@ func GetExternalIP() (string, error) {
 	return strings.TrimSpace(string(body)), nil
 }
 
+// GetDomainRecords queries Digital Ocean API for DNS records for a particular domain
 func GetDomainRecords(domain string, token string) ([]DomainRecord, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest(
@@ -109,6 +117,7 @@ func GetDomainRecords(domain string, token string) ([]DomainRecord, error) {
 	return domainRecordsResponse.DomainRecords, nil
 }
 
+// SetDomainRecord utilizes Digital Ocean API to set a DNS record
 func SetDomainRecord(domain string, recordID int, IP string, token string) error {
 	client := &http.Client{}
 	jsonPayload, _ := json.Marshal(map[string]string{"data": IP})
