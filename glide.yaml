@@ -1,3 +1,0 @@
-package: github.com/ZelJin/diy-dyndns
-import:
-- package: github.com/jasonlvhit/gocron
