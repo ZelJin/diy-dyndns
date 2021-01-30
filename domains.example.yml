@@ -1,0 +1,6 @@
+---
+domains:
+  - domain: google.com
+    subdomains:
+      - mail
+      - docs

@@ -10,7 +10,17 @@ import (
 	"strings"
 
 	"github.com/jasonlvhit/gocron"
+	"github.com/spf13/viper"
 )
+
+type Config struct {
+	Domains []DomainConfig `mapstructure:"domains"`
+}
+
+type DomainConfig struct {
+	Domain     string   `mapstructure:"domain"`
+	Subdomains []string `mapstructure:"subdomains"`
+}
 
 // DomainRecord contains information about the domain.
 type DomainRecord struct {
@@ -30,45 +40,60 @@ type DomainRecordResponse struct {
 	Meta          interface{}    `jsin:"meta"`
 }
 
+var (
+	config *Config
+)
+
+func init() {
+	var err error
+	config, err = ParseConfig()
+	if err != nil {
+		os.Stderr.WriteString(err.Error())
+		os.Exit(1)
+	}
+}
+
 func main() {
 	token := os.Getenv("DO_TOKEN")
-	domain := os.Getenv("DO_DOMAIN")
-	subdomains := os.Getenv("DO_SUBDOMAINS")
-	if token != "" && domain != "" && subdomains != "" {
-		gocron.Every(10).Minutes().Do(CheckIPAddress)
-		<-gocron.Start()
+	if token != "" {
+		for _, domainConfig := range config.Domains {
+			gocron.Every(10).Minutes().Do(func() { CheckDomain(&domainConfig, token) })
+			<-gocron.Start()
+		}
 	} else {
 		os.Stderr.WriteString("Env variables are not configured correctly.\n")
 		os.Exit(1)
 	}
 }
 
-// CheckIPAddress checks the IP address assigned to the domain,
+// CheckDomain checks the IP address assigned to the domain and its subdomains,
 // compares it to the real IP address of the server and
 // orders to change the DNS record if needed.
-func CheckIPAddress() {
-	token := os.Getenv("DO_TOKEN")
-	domain := os.Getenv("DO_DOMAIN")
-	subdomains := strings.Split(os.Getenv("DO_SUBDOMAINS"), ",")
+func CheckDomain(config *DomainConfig, token string) {
 	externalIP, err := GetExternalIP()
 	if err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
 		return
 	}
 	os.Stdout.WriteString("External IP: " + externalIP + "\n")
-	domainRecords, err := GetDomainRecords(domain, token)
+	domainRecords, err := GetDomainRecords(config.Domain, token)
 	if err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
 		return
 	}
 	for _, record := range domainRecords {
-		for _, subdomain := range subdomains {
-			if record.Type == "A" && record.Name == subdomain {
-				os.Stdout.WriteString(record.Name + " " + record.Data + "\n")
-				if externalIP != record.Data {
-					SetDomainRecord(domain, record.ID, externalIP, token)
-				}
-			}
+		CheckRecord(config, record, "@", externalIP, token)
+		for _, subdomain := range config.Subdomains {
+			CheckRecord(config, record, subdomain, externalIP, token)
+		}
+	}
+}
+
+func CheckRecord(config *DomainConfig, record DomainRecord, recordName string, externalIP string, token string) {
+	if record.Type == "A" && record.Name == recordName {
+		os.Stdout.WriteString(record.Name + " " + record.Data + "\n")
+		if externalIP != record.Data {
+			SetDomainRecord(config.Domain, record.ID, externalIP, token)
 		}
 	}
 }
@@ -142,4 +167,19 @@ func SetDomainRecord(domain string, recordID int, IP string, token string) error
 	}
 	os.Stdout.WriteString(string(body) + "\n")
 	return nil
+}
+
+func ParseConfig() (*Config, error) {
+	viper.SetConfigName("domains")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	config := &Config{}
+	err = viper.Unmarshal(config)
+	return config, err
 }

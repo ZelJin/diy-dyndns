@@ -22,3 +22,9 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Real-world config file
+domains.yml
+
+# Local .env file
+.env
